@@ -1,6 +1,4 @@
-
-
--- Retrieval-Augmented Generation (RAG) application that allows users to upload multiple PDF documents, retrieve relevant information using semantic search, and generate grounded answers using a Groq-hosted LLM.
+Retrieval-Augmented Generation (RAG) application that allows users to upload multiple PDF documents, retrieve relevant information using semantic search, and generate grounded answers using a Groq-hosted LLM.
 
 This project implements the core RAG pipeline directly using **ChromaDB, PyPDF, Streamlit, and Groq**, without using high-level frameworks such as LangChain or LlamaIndex.
 
