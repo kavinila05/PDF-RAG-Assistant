@@ -1,592 +1,313 @@
-**Architecture Overview**
+# 📚 PDF RAG Assistant
 
+A simple Retrieval-Augmented Generation (RAG) application for asking questions about PDF documents — built with **Streamlit**, **PyPDF**, **ChromaDB**, and **Groq**.
 
-┌──────────────────────────────────────────────────────────────┐
-│                         USER INTERFACE                       │
-│                                                              │
-│                     Streamlit Web UI                         │
-│                                                              │
-│   ┌──────────────────┐          ┌────────────────────────┐   │
-│   │   PDF Upload     │          │    Chat Interface      │   │
-│   │                  │          │                        │   │
-│   │  Single / Multi  │          │  Ask questions about   │   │
-│   │      PDF         │          │  uploaded documents    │   │
-│   └────────┬─────────┘          └───────────┬────────────┘   │
-└────────────┼────────────────────────────────┼────────────────┘
-             │                                │
-             │                                │ Question
-             ▼                                ▼
-┌────────────────────────┐        ┌───────────────────────────┐
-│      PDF INGESTION     │        │       RETRIEVAL           │
-│                        │        │                           │
-│        PyPDF           │        │        ChromaDB           │
-│                        │        │                           │
-│  Extract text/page     │        │  Query → Embedding       │
-│  information           │        │        ↓                  │
-└───────────┬────────────┘        │  Similarity Search        │
-            │                     │        ↓                  │
-            ▼                     │  Relevant Chunks          │
-┌────────────────────────┐        └─────────────┬─────────────┘
-│      CHUNKING          │                      │
-│                        │                      │
-│  Page-wise text        │                      │
-│  chunking               │                      │
-│                        │                      │
-│  Chunk Size: 1000      │                      │
-│  Overlap: 200          │                      │
-└───────────┬────────────┘                      │
-            │                                   │
-            ▼                                   │
-┌────────────────────────┐                      │
-│       ChromaDB         │◄─────────────────────┘
-│                        │
-│  Embeddings            │
-│  Vector Storage        │
-│  Metadata              │
-│                        │
-│  Source + Page Number  │
-└───────────┬────────────┘
-            │
-            │ Retrieved Context
-            ▼
-┌──────────────────────────────────────────────────────────────┐
-│                         GROQ LLM                             │
-│                                                              │
-│                     GPT-OSS 20B                              │
-│                                                              │
-│  Question + Retrieved Context + Conversation History         │
-│                         ↓                                    │
-│                    Grounded Answer                           │
-└──────────────────────────┬───────────────────────────────────┘
-                           │
-                           ▼
-                  ┌──────────────────┐
-                  │   Streamlit UI   │
-                  │                  │
-                  │ Answer + Sources │
-                  │ + Page Numbers   │
-                  └──────────────────┘
-**RAG Pipeline
+Upload one or more PDFs, ask questions in a chat interface, and get grounded answers with the exact source document and page number cited.
 
-The application follows a complete Retrieval-Augmented Generation pipeline:**
-                 PDF DOCUMENTS
-                      │
-                      ▼
-              ┌───────────────┐
-              │     PyPDF     │
-              │               │
-              │ Text Extract  │
-              └───────┬───────┘
-                      │
-                      ▼
-              ┌───────────────┐
-              │    Chunking   │
-              │               │
-              │ 1000 chars    │
-              │ 200 overlap   │
-              └───────┬───────┘
-                      │
-                      ▼
-              ┌───────────────┐
-              │   ChromaDB    │
-              │               │
-              │  Embeddings   │
-              │ Vector Store  │
-              └───────┬───────┘
-                      │
-                      │
-              USER QUESTION
-                      │
-                      ▼
-              ┌───────────────┐
-              │   Retrieval   │
-              │               │
-              │ Similarity    │
-              │ Search        │
-              └───────┬───────┘
-                      │
-                      ▼
-              Relevant Chunks
-                      │
-                      ▼
-              ┌───────────────┐
-              │ Context       │
-              │ Construction   │
-              └───────┬───────┘
-                      │
-                      ▼
-              ┌───────────────┐
-              │  Groq LLM     │
-              │ GPT-OSS 20B   │
-              └───────┬───────┘
-                      │
-                      ▼
-                  ANSWER
-                      │
-                      ▼
-              Source + Page
-              
-**AI / Components Used**
-| Component       | Technology                  | Purpose                                        |
-| --------------- | --------------------------- | ---------------------------------------------- |
-| PDF Extraction  | `PyPDF`                     | Extract text from PDF documents                |
-| Text Processing | Custom Python               | Clean and split extracted text                 |
-| Embeddings      | ChromaDB embedding function | Convert text into vector representations       |
-| Vector Database | `ChromaDB`                  | Store and retrieve document chunks             |
-| Retrieval       | ChromaDB similarity search  | Find relevant chunks for a question            |
-| LLM             | `openai/gpt-oss-20b`        | Generate answers using retrieved context       |
-| UI              | `Streamlit`                 | Interactive document upload and chat interface |
-| Configuration   | `python-dotenv`             | Secure API key management                      |
+---
 
-**How the Application Works**
-**Stage 1 — PDF Upload**
+## Table of Contents
 
-The user uploads one or more PDF documents through the Streamlit interface.
+- [Features](#features)
+- [Architecture Overview](#architecture-overview)
+- [RAG Pipeline](#rag-pipeline)
+- [Components Used](#components-used)
+- [How the Application Works](#how-the-application-works)
+- [Project Structure](#project-structure)
+- [Setup & Running](#setup--running)
+- [Using the Application](#using-the-application)
+- [ChromaDB Storage](#chromadb-storage)
+- [Known Limitations](#known-limitations)
 
-Example:
-research-paper.pdf
-agriculture-policy.pdf
-government-report.pdf
-Multiple documents can be stored in the same ChromaDB collection.
+---
 
-Each document remains identifiable through metadata.
+## Features
 
-**Stage 2 — PDF Text Extraction**
+- 📄 Upload single or multiple PDF documents
+- 💬 Chat-style Q&A over your uploaded documents
+- 🔍 Semantic search powered by ChromaDB
+- 📌 Every answer includes its source file and page number
+- 🧠 Conversation history maintained during a session
+- ⚡ Fast inference via Groq's `openai/gpt-oss-20b`
 
-PyPDF reads the PDF page by page.
+---
 
-For every page, the application stores:
-Page Number
-     +
-Extracted Text
+## Architecture Overview
 
-Example:
+```mermaid
+flowchart TB
+    subgraph UI["🖥️ USER INTERFACE — Streamlit"]
+        A["📤 PDF Upload<br/>Single / Multi PDF"]
+        B["💬 Chat Interface<br/>Ask questions about uploaded documents"]
+    end
 
-Page: 12
+    subgraph ING["📥 PDF INGESTION"]
+        C["PyPDF<br/>Extract text + page number"]
+    end
 
-Institutional theory explains how organizations
-are influenced by rules, norms and institutions...
-Preserving the page number allows the application to later show where retrieved information came from.
+    subgraph CHK["✂️ CHUNKING"]
+        D["Page-wise text chunking<br/>Chunk size: 1000 · Overlap: 200"]
+    end
 
-**Stage 3 — Text Chunking**
+    subgraph DB["🗄️ ChromaDB"]
+        E["Embeddings · Vector Storage · Metadata<br/>(source + page number)"]
+    end
 
-Large documents are divided into smaller pieces called chunks.
+    subgraph RET["🔎 RETRIEVAL"]
+        F["Query → Embedding → Similarity Search<br/>→ Relevant Chunks"]
+    end
 
-The current implementation uses:
-Chunk size : 1000 characters
-Overlap    : 200 characters
-                 DOCUMENT
+    subgraph LLM["🤖 GROQ LLM — GPT-OSS 20B"]
+        G["Question + Retrieved Context + Conversation History<br/>→ Grounded Answer"]
+    end
 
-┌─────────────────────────────────────┐
-│              Chunk 1                │
-│                                     │
-│         0 → 1000 characters         │
-└──────────────────┬──────────────────┘
-                   │
-              200 character
-                 overlap
-                   │
-                   ▼
-          ┌─────────────────────────────┐
-          │          Chunk 2            │
-          │                             │
-          │       800 → 1800            │
-          └─────────────────────────────┘
+    subgraph OUT["📋 Streamlit UI"]
+        H["Answer + Sources + Page Numbers"]
+    end
 
-The overlap reduces the possibility of important information being split exactly at a chunk boundary.
+    A --> C --> D --> E
+    B -- "Question" --> F
+    E -- "Retrieved Context" --> F
+    F --> G
+    G --> H
+```
 
-**Stage 4 — Embedding and Vector Storage
-**
-Each chunk is stored in ChromaDB.
+---
 
-Conceptually:
-Text
- ↓
-Embedding Model
- ↓
-Vector
- ↓
-ChromaDB
-The vector representation allows semantically similar pieces of text to be found even when the wording is different.
+## RAG Pipeline
 
-Each stored chunk also contains metadata:
-Example:
+The application follows a complete Retrieval-Augmented Generation pipeline:
+
+```mermaid
+flowchart TD
+    P["📄 PDF Documents"] --> X["PyPDF<br/>Text Extraction"]
+    X --> C["Chunking<br/>1000 chars · 200 overlap"]
+    C --> V["ChromaDB<br/>Embeddings + Vector Store"]
+
+    Q["❓ User Question"] --> S["Retrieval<br/>Similarity Search"]
+    V -.-> S
+    S --> RC["Relevant Chunks"]
+    RC --> CTX["Context Construction"]
+    CTX --> L["Groq LLM<br/>GPT-OSS 20B"]
+    L --> ANS["✅ Answer"]
+    ANS --> SRC["Source + Page"]
+```
+
+---
+
+## Components Used
+
+| Component | Technology | Purpose |
+|---|---|---|
+| PDF Extraction | `PyPDF` | Extract text from PDF documents |
+| Text Processing | Custom Python | Clean and split extracted text |
+| Embeddings | ChromaDB embedding function | Convert text into vector representations |
+| Vector Database | `ChromaDB` | Store and retrieve document chunks |
+| Retrieval | ChromaDB similarity search | Find relevant chunks for a question |
+| LLM | `openai/gpt-oss-20b` (via Groq) | Generate answers using retrieved context |
+| UI | `Streamlit` | Interactive document upload and chat interface |
+| Configuration | `python-dotenv` | Secure API key management |
+
+---
+
+## How the Application Works
+
+### Stage 1 — PDF Upload
+The user uploads one or more PDF documents through the Streamlit sidebar (e.g. `research-paper.pdf`, `agriculture-policy.pdf`, `government-report.pdf`). Multiple documents can live in the same ChromaDB collection, each remaining identifiable through metadata.
+
+### Stage 2 — PDF Text Extraction
+`PyPDF` reads the PDF page by page. For every page, the app stores the **page number** alongside the **extracted text**, so retrieved information can later be traced back to its source.
+
+### Stage 3 — Text Chunking
+Large documents are split into overlapping chunks:
+
+- **Chunk size:** 1000 characters
+- **Overlap:** 200 characters
+
+```mermaid
+flowchart LR
+    D["📄 Document"] --> C1["Chunk 1<br/>0 → 1000 chars"]
+    C1 -- "200-char overlap" --> C2["Chunk 2<br/>800 → 1800 chars"]
+```
+
+The overlap reduces the chance of important information being cut exactly at a chunk boundary.
+
+### Stage 4 — Embedding & Vector Storage
+Each chunk is embedded and stored in ChromaDB along with metadata, e.g.:
+
+```json
 {
-    source: "research-paper.pdf",
-    page: 12
+  "source": "research-paper.pdf",
+  "page": 12
 }
+```
 
-**Stage 5 — User Question**
+This vector representation lets semantically similar text be found even when the wording differs.
 
-The user asks a question through the chat interface.
+### Stage 5 — User Question
+The user asks a question through the chat interface, e.g. *"What is institutional theory?"*
 
-For example:What is institutional theory?
+### Stage 6 — Semantic Retrieval
+ChromaDB compares the question against stored embeddings and returns the most relevant chunks (up to 5 by default), each linked to its source page.
 
-The question is passed to ChromaDB for retrieval.
+### Stage 7 — Context Construction
+Retrieved chunks are combined into a single context block, tagged with their source and page number, and paired with the user's question.
 
-**Stage 6 — Semantic Retrieval**
+### Stage 8 — LLM Generation
+The context and question are sent to **Groq's `openai/gpt-oss-20b`**. The model is instructed to answer using only the supplied document context — if the answer isn't in the retrieved context, it responds:
 
-ChromaDB compares the question against the stored document embeddings.
+> "I couldn't find that information in the uploaded documents."
 
-The application retrieves the most relevant chunks.
-Question
-   │
-   ▼
-ChromaDB
-   │
-   ├── Chunk 17 → Page 8
-   ├── Chunk 23 → Page 12
-   ├── Chunk 31 → Page 15
-   ├── Chunk 42 → Page 21
-   └── Chunk 48 → Page 24
-   The current application retrieves up to 5 relevant chunks.
+### Stage 9 — Source Display
+The app keeps the source metadata for every retrieved chunk and displays it alongside the generated answer.
 
-   **Stage 7 — Context Construction**
+---
 
-The retrieved chunks are combined into a context that is passed to the LLM.
+## Project Structure
 
-Conceptually:
-DOCUMENT CONTEXT
-
-Source: research-paper.pdf
-Page: 12
-
-Institutional theory explains...
-
-Source: research-paper.pdf
-Page: 15
-
-Institutions influence organizational behavior...
-
-USER QUESTION
-
-What is institutional theory?
-
-**Stage 8 — LLM Generation**
-
-The context and user question are sent to:
-Groq
-  ↓
-openai/gpt-oss-20b
-
-Groq
-  ↓
-openai/gpt-oss-20b
-The model is instructed to answer using the supplied document context rather than inventing information.
-
-If the retrieved context does not contain the answer, the application instructs the model to say:I couldn't find that information in the uploaded documents.
-
-**Stage 9 — Source Display**
-
-The application keeps the source metadata associated with every retrieved chunk.
-
-**Project Structure**
+```
 simple-rag/
-│
-├── app.py                    # Streamlit user interface
-│
-├── rag.py                    # Complete RAG pipeline
-│
-├── requirements.txt          # Python dependencies
-│
-├── README.md                 # Project documentation
-│
-├── .env.example              # API key configuration template
-│
-├── .gitignore                # Files excluded from Git
-│
-├── test_pdf.py               # PDF extraction test
-│
-└── test_groq.py              # Groq API connection test
+├── app.py              # Streamlit user interface
+├── rag.py              # Complete RAG pipeline
+├── requirements.txt    # Python dependencies
+├── README.md           # Project documentation
+├── .env.example        # API key configuration template
+├── .gitignore          # Files excluded from Git
+├── test_pdf.py         # PDF extraction test
+└── test_groq.py        # Groq API connection test
+```
 
-**app.py**
+**`app.py`** — the Streamlit application layer: PDF upload, multi-document selection, processing controls, progress bar, chat interface, conversation history, source display, database clearing.
 
-The Streamlit application layer.
+**`rag.py`** — the core RAG implementation: PDF extraction, page tracking, text chunking, ChromaDB storage, similarity retrieval, context construction, Groq LLM calls, answer generation, source tracking, database management.
 
-Responsible for:
+**`test_pdf.py`** — verifies PDF text extraction works correctly.
 
-PDF upload
-Multiple document selection
-Processing controls
-Progress bar
-Chat interface
-Conversation history
-Source display
-Database clearing
+**`test_groq.py`** — verifies the Groq API connection and selected model work correctly.
 
+### RAG Pipeline — Step by Step
 
-**rag.py**
+| Stage | Component | What Happens |
+|---|---|---|
+| 1 | Streamlit | User uploads PDF documents |
+| 2 | PyPDF | Text is extracted page by page |
+| 3 | Chunking | Text is divided into overlapping chunks |
+| 4 | ChromaDB | Chunks are embedded and stored |
+| 5 | User | User submits a question |
+| 6 | ChromaDB | Relevant chunks are retrieved |
+| 7 | Context Builder | Retrieved chunks are combined |
+| 8 | Groq | Context and question are sent to the LLM |
+| 9 | GPT-OSS 20B | Generates a grounded answer |
+| 10 | Streamlit | Answer and sources are displayed |
 
-The core RAG implementation.
+### How It All Connects
 
-Responsible for:
+```mermaid
+flowchart TD
+    U["👤 User uploads PDF"] --> AP["app.py"]
+    AP --> PP["process_pdf()"]
+    PP --> E1["extract_pages_from_pdf()"]
+    PP --> E2["chunk_text()"]
+    E1 --> SC["store_chunks()"]
+    E2 --> SC
+    SC --> CDB[("ChromaDB")]
 
-PDF extraction
-Page tracking
-Text chunking
-ChromaDB storage
-Similarity retrieval
-Context construction
-Groq LLM calls
-Answer generation
-Source tracking
-Database management
+    UQ["👤 User asks question"] --> AQ["answer_question()"]
+    AQ --> SCH["search_chunks()"]
+    SCH --> CDB
+    CDB --> RCH["Relevant document chunks"]
+    RCH --> BC["build_context()"]
+    BC --> GA["generate_answer()"]
+    GA --> GROQ["Groq API — GPT-OSS 20B"]
+    GROQ --> GEN["Generated Answer"]
+    GEN --> UIOUT["Streamlit UI<br/>Answer + Source + Page Number"]
+```
 
-**requirements.txt**
+---
 
-Contains all Python packages required to run the application.
+## Setup & Running
 
-**test_pdf.py**
+### Prerequisites
 
-Development test used to verify that PDF text can be extracted correctly.
+- Python 3.10+
+- Git
+- A [Groq API key](https://console.groq.com)
 
-**test_groq.py**
+### 1. Clone the Repository
 
-Development test used to verify that the Groq API connection and selected model work correctly.
+```bash
+git clone https://github.com/kavinila05/PDF-RAG-Assistant.git
+cd PDF-RAG-Assistant
+```
 
-**RAG Pipeline — Step by Step**
-| Stage | Component       | What Happens                             |
-| ----- | --------------- | ---------------------------------------- |
-| 1     | Streamlit       | User uploads PDF documents               |
-| 2     | PyPDF           | Text is extracted page by page           |
-| 3     | Chunking        | Text is divided into overlapping chunks  |
-| 4     | ChromaDB        | Chunks are embedded and stored           |
-| 5     | User            | User submits a question                  |
-| 6     | ChromaDB        | Relevant chunks are retrieved            |
-| 7     | Context Builder | Retrieved chunks are combined            |
-| 8     | Groq            | Context and question are sent to the LLM |
-| 9     | GPT-OSS 20B     | Generates a grounded answer              |
-| 10    | Streamlit       | Answer and sources are displayed         |
+### 2. Create a Virtual Environment
 
-**How It All Connects**
-User
- │
- │ Upload PDF
- ▼
-app.py
- │
- ▼
-process_pdf()
- │
- ├── extract_pages_from_pdf()
- │
- └── chunk_text()
- │
- ▼
-store_chunks()
- │
- ▼
-ChromaDB
- │
- │
- │ User asks question
- │
- ▼
-answer_question()
- │
- ▼
-search_chunks()
- │
- ▼
-ChromaDB similarity search
- │
- ▼
-Relevant document chunks
- │
- ▼
-build_context()
- │
- ▼
-generate_answer()
- │
- ▼
-Groq API
- │
- ▼
-GPT-OSS 20B
- │
- ▼
-Generated Answer
- │
- ├── Answer
- │
- └── Source + Page Number
- │
- ▼
-Streamlit UI
-**
-Setup & Running**
-Prerequisites
-
-Before running the application, install:
-
-Python 3.10+
-Git
-A Groq API key
-
-**1. Clone the Repository**
-git clone https://github.com/YOUR-USERNAME/YOUR-REPOSITORY-NAME.git
-
-Move into the project:
-
-cd YOUR-REPOSITORY-NAME
-
-**2. Create a Virtual Environment**
-Windows
+```bash
 python -m venv venv
+```
 
-Activate:
+Activate it:
 
+```bash
+# Windows
 venv\Scripts\activate
-**
-3. Install Dependencies**
 
+# macOS / Linux
+source venv/bin/activate
+```
+
+### 3. Install Dependencies
+
+```bash
 pip install -r requirements.txt
+```
 
-**4. Configure the Groq API Key**
+### 4. Configure the Groq API Key
 
-Create a file named:
+Create a `.env` file in the project root (use `.env.example` as a template) and add:
 
-.env
-in the project root.
-Use .env.example as a template.
-Add:
+```
 GROQ_API_KEY=your_groq_api_key_here
-Replace the placeholder with your own Groq API key.
-**
-5. Start the Application**
+```
 
-Run:
+### 5. Start the Application
 
+```bash
 streamlit run app.py
+```
 
-**Using the Application**
-**Upload Documents**
+---
 
-Upload one or more PDF files from the sidebar.
+## Using the Application
 
-📄 research-paper.pdf
-📄 government-report.pdf
-📄 agriculture-policy.pdf
+**Upload Documents** — Upload one or more PDF files from the sidebar.
 
-**Process Documents**
+**Process Documents** — Click **"Process uploaded PDFs"**. The app will read the PDF → extract text → create chunks → generate embeddings → store chunks in ChromaDB.
 
-Click:Process uploaded PDFs
-The application will:
+**Ask Questions** — After processing, ask questions through the chat interface, e.g. *"What is institutional theory?"* The app retrieves relevant chunks before generating an answer.
 
-Read PDF
-    ↓
-Extract text
-    ↓
-Create chunks
-    ↓
-Generate embeddings
-    ↓
-Store chunks in ChromaDB
+**Follow-up Questions** — Conversation history is maintained during the Streamlit session:
 
-**Ask Questions**
+```
+User:      What is institutional theory?
+Assistant: ...
 
-After processing the documents, ask questions through the chat interface.
+User:      What are its main characteristics?
+Assistant: ...
+```
 
-Example:
+---
 
-What is institutional theory?
-The application retrieves relevant chunks before generating the answer.
-Follow-up Questions
+## ChromaDB Storage
 
-Conversation history is maintained during the Streamlit session.
+The application uses ChromaDB as its local vector database, stored in a `chroma_db/` directory. This directory is intentionally excluded from Git — when someone else clones the repo, they build their own vector store by uploading their own documents.
 
-Example:User:
-What is institutional theory?
+---
 
-Assistant:
-...
+## Known Limitations
 
-User:
-What are its main characteristics?
-
-Assistant:
-...
-
-**ChromaDB**
-
-ChromaDB is used as the local vector database.
-
-The application creates:
-
-chroma_db/
-
-This directory contains the local vector store.
-
-It is intentionally excluded from GitHub.
-
-When another user clones the repository, they can build their own vector database by uploading their own documents.
-
-**Known Limitations**
-**1. Scanned PDFs**
-
-The current implementation primarily works with PDFs containing selectable text.
-
-Image-only/scanned PDFs require OCR.
-
-OCR support is planned for a future version.
-
-**2. Character-Based Chunking**
-
-The current chunking strategy uses character boundaries.
-
-It does not yet understand:
-
-Paragraph boundaries
-Section headings
-Tables
-Semantic boundaries
-
-A more advanced chunking strategy could improve retrieval quality.
-
-**3. Retrieval**
-
-The current system uses semantic similarity retrieval.
-
-More advanced approaches could include:
-
-Hybrid search
-Keyword + vector search
-Reranking
-Metadata filtering
-Query rewriting
-Multi-query retrieval
-
-**4. Follow-up Question Retrieval**
-
-Conversation history is provided to the LLM, but retrieval currently operates primarily on the current question.
-
-For example:
-
-User:
-What is institutional theory?
-
-User:
-What are its characteristics?
-
-The second question may benefit from query rewriting before retrieval.
-
-A future version can convert:
-
-"What are its characteristics?"
-
-into:
-
-"What are the characteristics of institutional theory?"
-
-before querying ChromaDB.
-
-**5. Local Vector Database**
-
-The current application uses a local ChromaDB database.
-
-A production deployment could use a hosted or persistent vector database depending on scale and deployment requirements.
-
-
-
-
+1. **Scanned PDFs** — Currently works with PDFs containing selectable text only. Image-only/scanned PDFs need OCR (planned for a future version).
+2. **Character-Based Chunking** — Chunking uses character boundaries and doesn't yet understand paragraphs, section headings, tables, or semantic boundaries.
+3. **Retrieval** — Uses semantic similarity retrieval only. Future improvements could include hybrid (keyword + vector) search, reranking, metadata filtering, and multi-query retrieval.
+4. **Follow-up Question Retrieval** — Conversation history is passed to the LLM, but retrieval currently runs on the raw current question. A future version could rewrite *"What are its characteristics?"* into *"What are the characteristics of institutional theory?"* before querying ChromaDB.
+5. **Local Vector Database** — Currently uses a local ChromaDB instance. A production deployment could use a hosted or persistent vector database depending on scale.
