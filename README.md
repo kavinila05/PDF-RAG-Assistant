@@ -605,5 +605,3 @@ system using Retrieval-Augmented Generation.
 
 ------------------------------------------------------------------------
 
-README (1) (1).md
-Displaying README (1) (1).md.
