@@ -4,33 +4,6 @@ A simple Retrieval-Augmented Generation (RAG) application for asking questions a
 
 Upload one or more PDFs, ask questions in a chat interface, and get grounded answers with the exact source document and page number cited.
 
----
-
-## Table of Contents
-
-- [Features](#features)
-- [Architecture Overview](#architecture-overview)
-- [RAG Pipeline](#rag-pipeline)
-- [Components Used](#components-used)
-- [How the Application Works](#how-the-application-works)
-- [Project Structure](#project-structure)
-- [Setup & Running](#setup--running)
-- [Using the Application](#using-the-application)
-- [ChromaDB Storage](#chromadb-storage)
-- [Known Limitations](#known-limitations)
-
----
-
-## Features
-
-- 📄 Upload single or multiple PDF documents
-- 💬 Chat-style Q&A over your uploaded documents
-- 🔍 Semantic search powered by ChromaDB
-- 📌 Every answer includes its source file and page number
-- 🧠 Conversation history maintained during a session
-- ⚡ Fast inference via Groq's `openai/gpt-oss-20b`
-
----
 
 ## Architecture Overview
 
