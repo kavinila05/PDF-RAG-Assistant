@@ -1,19 +1,4 @@
-None selected
 
-Skip to content
-Using Gmail with screen readers
-1 of 282
-(no subject)
-Inbox
-
-Priyadharshini V <vadivelmurugan7544@gmail.com>
-Attachments
-22:24 (0 minutes ago)
-to me
-
-
- One attachment
-  •  Scanned by Gmail
 # 📚 Document RAG Assistant
 
 **A document question-answering application built from the core RAG components — PDF ingestion, page-aware chunking, ChromaDB retrieval, context construction, and Groq LLM generation.**
