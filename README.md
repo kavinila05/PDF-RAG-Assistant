@@ -357,26 +357,93 @@ document-rag-assistant/
 
 ### How It All Connects
 
-```mermaid
-flowchart TD
-    U["👤 User uploads PDF"] --> AP["app.py"]
-    AP --> PP["process_pdf()"]
-    PP --> E1["extract_pages_from_pdf()"]
-    PP --> E2["chunk_text()"]
-    E1 --> SC["store_chunks()"]
-    E2 --> SC
-    SC --> CDB[("ChromaDB")]
+                    📚 DOCUMENT RAG ASSISTANT
+                    ═════════════════════════
 
-    UQ["👤 User asks question"] --> AQ["answer_question()"]
-    AQ --> SCH["search_chunks()"]
-    SCH --> CDB
-    CDB --> RCH["Relevant document chunks"]
-    RCH --> BC["build_context()"]
-    BC --> GA["generate_answer()"]
-    GA --> GROQ["Groq API — GPT-OSS 20B"]
-    GROQ --> GEN["Generated Answer"]
-    GEN --> UIOUT["Streamlit UI<br/>Answer + Source + Page Number"]
-```
+
+                 ┌───────────────┐
+                 │   USER        │
+                 └───────┬───────┘
+                         │
+              ┌──────────┴──────────┐
+              │                     │
+              ▼                     ▼
+       📄 UPLOAD PDF(S)       💬 ASK QUESTION
+              │                     │
+              ▼                     ▼
+        ┌───────────┐         ┌───────────────┐
+        │  app.py   │         │    app.py     │
+        └─────┬─────┘         └───────┬───────┘
+              │                       │
+              ▼                       ▼
+     ┌────────────────┐       ┌─────────────────┐
+     │ process_pdf()  │       │answer_question()│
+     └───────┬────────┘       └────────┬────────┘
+             │                         │
+             ▼                         ▼
+     ┌────────────────┐       ┌─────────────────┐
+     │ PyPDF          │       │search_chunks()  │
+     │                │       └────────┬────────┘
+     │ Extract pages  │                │
+     │ + text         │                │
+     └───────┬────────┘                │
+             │                         │
+             ▼                         │
+     ┌────────────────┐                │
+     │ chunk_text()   │                │
+     │                │                │
+     │ 1000 chars     │                │
+     │ 200 overlap    │                │
+     └───────┬────────┘                │
+             │                         │
+             ▼                         │
+     ┌────────────────┐                │
+     │store_chunks()  │                │
+     └───────┬────────┘                │
+             │                         │
+             └──────────┐   ┌──────────┘
+                        ▼   ▼
+                  ╔═══════════════╗
+                  ║   ChromaDB    ║
+                  ║───────────────║
+                  ║ Embeddings    ║
+                  ║ Vector Store  ║
+                  ║ Metadata      ║
+                  ╚═══════╤═══════╝
+                          │
+                          │ Top 5 Relevant Chunks
+                          ▼
+                  ┌────────────────┐
+                  │build_context() │
+                  │                │
+                  │ Text           │
+                  │ Source         │
+                  │ Page           │
+                  └───────┬────────┘
+                          │
+                          ▼
+                  ┌────────────────┐
+                  │generate_answer │
+                  │                │
+                  │ Question       │
+                  │ Context        │
+                  │ Chat History   │
+                  └───────┬────────┘
+                          │
+                          ▼
+                  ┌────────────────┐
+                  │   Groq API     │
+                  │ GPT-OSS 20B    │
+                  └───────┬────────┘
+                          │
+                          ▼
+                  ┌────────────────┐
+                  │  Streamlit UI  │
+                  │                │
+                  │  Answer        │
+                  │  Sources       │
+                  │ Page Number    │
+                  └────────────────┘
 
 ------------------------------------------------------------------------
 
