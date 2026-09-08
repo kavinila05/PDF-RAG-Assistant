@@ -1,3 +1,19 @@
+None selected
+
+Skip to content
+Using Gmail with screen readers
+1 of 282
+(no subject)
+Inbox
+
+Priyadharshini V <vadivelmurugan7544@gmail.com>
+Attachments
+22:24 (0 minutes ago)
+to me
+
+
+ One attachment
+  •  Scanned by Gmail
 # 📚 Document RAG Assistant
 
 **A document question-answering application built from the core RAG components — PDF ingestion, page-aware chunking, ChromaDB retrieval, context construction, and Groq LLM generation.**
@@ -165,7 +181,7 @@ The purpose of the project is to understand how a document-based AI system works
 
 ------------------------------------------------------------------------
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Component | Technology | Responsibility |
 |---------|------------|----------------|
@@ -279,18 +295,26 @@ The question is passed to ChromaDB for retrieval.
 
 ChromaDB compares the question against the stored document embeddings.
 
-The application retrieves the most relevant chunks.
-Question
-   │
-   ▼
-ChromaDB
-   │
-   ├── Chunk 17 → Page 8
-   ├── Chunk 23 → Page 12
-   ├── Chunk 31 → Page 15
-   ├── Chunk 42 → Page 21
-   └── Chunk 48 → Page 24
-   The current application retrieves up to 5 relevant chunks.
+                    User Question
+                         │
+                         ▼
+                  ┌─────────────┐
+                  │  ChromaDB   │
+                  │             │
+                  │   Semantic  │
+                  │   Search    │
+                  └──────┬──────┘
+                         │
+              ┌──────────┼──────────┬──────────┐
+              │          │          │          │
+              ▼          ▼          ▼          ▼
+          Chunk 17    Chunk 23    Chunk 31    Chunk 42
+           Page 8     Page 12     Page 15     Page 21
+              │
+              └──────────────────────┐
+                                     ▼
+                                  Chunk 48
+                                   Page 24
 
    **Stage 7 — Context Construction**
 
@@ -332,7 +356,7 @@ If the retrieved context does not contain the answer, the application instructs 
 The application keeps the source metadata associated with every retrieved chunk.
 
 
-## 📁 Project Structure
+##  Project Structure
 
 ``` text
 document-rag-assistant/
@@ -357,10 +381,7 @@ document-rag-assistant/
 
 ### How It All Connects
 
-                    📚 DOCUMENT RAG ASSISTANT
-                    ═════════════════════════
-
-
+                    
                  ┌───────────────┐
                  │   USER        │
                  └───────┬───────┘
@@ -447,7 +468,7 @@ document-rag-assistant/
 
 ------------------------------------------------------------------------
 
-## ⚙️ Installation and Setup
+##  Installation and Setup
 
 ### Prerequisites
 
@@ -507,7 +528,7 @@ http://localhost:8501
 
 ------------------------------------------------------------------------
 
-## 🚀 How to Use
+##  How to Use
 
 1.  Start the Streamlit application.
 2.  Use **Upload PDF files** in the sidebar to select one or more PDFs.
@@ -537,7 +558,7 @@ document_name.pdf — Page 9
 
 ------------------------------------------------------------------------
 
-## 🧪 Development Tests
+##  Development Tests
 
 ### Test Groq connectivity
 
@@ -565,7 +586,7 @@ an automated test.
 ```
 ------------------------------------------------------------------------
 
-## 📌 Recommended `.env.example`
+## Recommended `.env.example`
 
 ``` env
 # Obtain a Groq API key and place the real value in your local .env file.
@@ -590,7 +611,7 @@ The application uses ChromaDB as its local vector database, stored in a `chroma_
 ------------------------------------------------------------------------
 
 
-## 👤 Author
+##  Author
 
 **Kavinila V**
 
@@ -599,3 +620,5 @@ system using Retrieval-Augmented Generation.
 
 ------------------------------------------------------------------------
 
+README (1) (1).md
+Displaying README (1) (1).md.
